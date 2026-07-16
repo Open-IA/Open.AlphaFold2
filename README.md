@@ -30,8 +30,16 @@ uv run pytest
 uv run open-alphafold2
 ```
 
-Training dependencies are intentionally optional so local preparation does not
-download CUDA/PyTorch wheels:
+If tests fail with `ModuleNotFoundError: open_alphafold2`, refresh the editable
+install after pulling or uploading the latest repo:
+
+```bash
+uv sync --dev --reinstall-package open-alphafold2
+uv run pytest
+```
+
+Training dependencies are installed on the server rather than on the local
+machine:
 
 ```bash
 uv sync --dev --extra train

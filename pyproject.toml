@@ -1,14 +1,19 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "open-alphafold2"
 version = "0.1.0"
 description = "A small PyTorch AlphaFold2-style implementation built from first principles."
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
-dependencies = []
+dependencies = [
+    "numpy>=2.0",
+]
 
 [project.optional-dependencies]
 train = [
-    "numpy>=2.0",
     "torch>=2.5",
 ]
 
@@ -27,3 +32,6 @@ target-version = "py312"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
