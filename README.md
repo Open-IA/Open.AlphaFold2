@@ -45,6 +45,28 @@ machine:
 uv sync --dev --extra train
 ```
 
+## Pairwise Distance Plot
+
+Generate a C-alpha pairwise distance heatmap from a PDB or mmCIF file:
+
+```bash
+uv run open-alphafold2 plot-distance structure.cif \
+  --chain A \
+  --out outputs/structure-distance.png
+```
+
+Supported input suffixes are `.pdb`, `.cif`, and `.mmcif`.
+
+You can also give a PDB ID. The CLI downloads the mmCIF file from RCSB and
+caches it under `~/.cache/open_alphafold2/structures` by default:
+
+```bash
+uv run open-alphafold2 plot-distance \
+  --pdb-id 1CRN \
+  --chain A \
+  --out outputs/1crn-distance.png
+```
+
 ## Near-Term Roadmap
 
 ### MiniFold v0: Foundation
