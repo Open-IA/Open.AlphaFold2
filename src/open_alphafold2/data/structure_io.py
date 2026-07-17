@@ -59,6 +59,7 @@ def load_ca_coordinates(
     path: str | Path,
     chain_id: str | None = None,
     model_index: int = 0,
+    keep_missing_ca: bool = True,
 ) -> CAStructure:
     """Load C-alpha coordinates from a PDB or mmCIF structure file.
 
@@ -67,6 +68,9 @@ def load_ca_coordinates(
         chain_id: Optional chain ID. If omitted, the first chain containing
             at least one C-alpha atom is used.
         model_index: Zero-based model index to read.
+        keep_missing_ca: Preserve known amino-acid residues without C-alpha
+            atoms and mark them with `mask=False`. If false, those residues are
+            dropped.
 
     Returns:
         A C-alpha-only structure view with coordinates shaped `[num_res, 3]`.
@@ -85,7 +89,12 @@ def load_ca_coordinates(
 
     model = models[model_index]
     chain = _select_chain(model, chain_id)
-    return _extract_ca_structure(structure_path.stem, model_index, chain)
+    return _extract_ca_structure(
+        structure_path.stem,
+        model_index,
+        chain,
+        keep_missing_ca=keep_missing_ca,
+    )
 
 
 def download_mmcif(
@@ -165,26 +174,39 @@ def _select_chain(model: Model, chain_id: str | None) -> Chain:
     raise ValueError("structure model does not contain any chain with C-alpha atoms")
 
 
-def _extract_ca_structure(structure_id: str, model_index: int, chain: Chain) -> CAStructure:
+def _extract_ca_structure(
+    structure_id: str,
+    model_index: int,
+    chain: Chain,
+    keep_missing_ca: bool,
+) -> CAStructure:
     sequence: list[str] = []
     residue_ids: list[str] = []
     coords: list[FloatArray] = []
+    mask: list[bool] = []
 
     for residue in chain.get_residues():
-        if "CA" not in residue:
+        residue_name = residue.get_resname().upper()
+        if residue_name not in THREE_TO_ONE:
             continue
 
-        ca_atom = residue["CA"]
-        residue_name = residue.get_resname().upper()
+        has_ca = "CA" in residue
+        if not has_ca and not keep_missing_ca:
+            continue
+
         residue_ids.append(_format_residue_id(chain.id, residue.id, residue_name))
         sequence.append(THREE_TO_ONE.get(residue_name, "X"))
-        coords.append(np.asarray(ca_atom.coord, dtype=np.float64))
+        mask.append(has_ca)
+        if has_ca:
+            coords.append(np.asarray(residue["CA"].coord, dtype=np.float64))
+        else:
+            coords.append(np.zeros((3,), dtype=np.float64))
 
     if not coords:
         raise ValueError(f"chain '{chain.id}' does not contain C-alpha atoms")
 
     coords_array = np.stack(coords, axis=0)
-    mask = np.ones((coords_array.shape[0],), dtype=np.bool_)
+    mask_array = np.asarray(mask, dtype=np.bool_)
     return CAStructure(
         structure_id=structure_id,
         model_index=model_index,
@@ -192,7 +214,7 @@ def _extract_ca_structure(structure_id: str, model_index: int, chain: Chain) -> 
         sequence="".join(sequence),
         residue_ids=residue_ids,
         coords=coords_array,
-        mask=mask,
+        mask=mask_array,
     )
 
 
