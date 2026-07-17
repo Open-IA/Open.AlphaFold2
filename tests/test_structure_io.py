@@ -31,6 +31,54 @@ def test_load_ca_coordinates_reads_pdb_chain(tmp_path: Path) -> None:
     np.testing.assert_array_equal(structure.mask, np.array([True, True]))
 
 
+def test_load_ca_coordinates_preserves_missing_ca_by_default(tmp_path: Path) -> None:
+    pdb_path = tmp_path / "missing_ca.pdb"
+    pdb_path.write_text(
+        "\n".join(
+            [
+                "ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1.00 20.00           C",
+                "ATOM      2  N   SER A   2       4.000   5.000   6.000  1.00 20.00           N",
+                "ATOM      3  CA  GLY A   3       7.000   8.000   9.000  1.00 20.00           C",
+                "TER",
+                "END",
+            ]
+        )
+        + "\n"
+    )
+
+    structure = load_ca_coordinates(pdb_path, chain_id="A")
+
+    assert structure.sequence == "ASG"
+    assert structure.residue_ids == ["A:ALA1", "A:SER2", "A:GLY3"]
+    np.testing.assert_allclose(
+        structure.coords,
+        np.array([[1.0, 2.0, 3.0], [0.0, 0.0, 0.0], [7.0, 8.0, 9.0]]),
+    )
+    np.testing.assert_array_equal(structure.mask, np.array([True, False, True]))
+
+
+def test_load_ca_coordinates_can_drop_missing_ca(tmp_path: Path) -> None:
+    pdb_path = tmp_path / "missing_ca.pdb"
+    pdb_path.write_text(
+        "\n".join(
+            [
+                "ATOM      1  CA  ALA A   1       1.000   2.000   3.000  1.00 20.00           C",
+                "ATOM      2  N   SER A   2       4.000   5.000   6.000  1.00 20.00           N",
+                "ATOM      3  CA  GLY A   3       7.000   8.000   9.000  1.00 20.00           C",
+                "TER",
+                "END",
+            ]
+        )
+        + "\n"
+    )
+
+    structure = load_ca_coordinates(pdb_path, chain_id="A", keep_missing_ca=False)
+
+    assert structure.sequence == "AG"
+    assert structure.residue_ids == ["A:ALA1", "A:GLY3"]
+    np.testing.assert_array_equal(structure.mask, np.array([True, True]))
+
+
 def test_load_ca_coordinates_reads_mmcif_chain(tmp_path: Path) -> None:
     mmcif_path = tmp_path / "tiny.cif"
     mmcif_path.write_text(

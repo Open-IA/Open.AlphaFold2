@@ -67,6 +67,25 @@ uv run open-alphafold2 plot-distance \
   --out outputs/1crn-distance.png
 ```
 
+## C-Alpha Training Samples
+
+Create a reusable `.npz` sample for MiniFold v1 training:
+
+```bash
+uv run open-alphafold2 make-ca-sample \
+  --pdb-id 1CRN \
+  --chain A \
+  --out data/processed/1crn_A.npz
+```
+
+The sample contains `sequence`, `sequence_encoded`, `residue_ids`,
+`ca_coords`, `mask`, `distances`, `distogram_bins`,
+`distogram_bin_edges`, and source metadata.
+
+By default, amino-acid residues without C-alpha atoms are preserved in the
+sequence with zero placeholder coordinates and `mask=False`. Use
+`--drop-missing-ca` only when you explicitly want compact valid-CA residues.
+
 ## Near-Term Roadmap
 
 ### MiniFold v0: Foundation
